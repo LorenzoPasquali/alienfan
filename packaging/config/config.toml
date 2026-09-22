@@ -1,0 +1,48 @@
+# alienfan — configuração. Editável à mão ou pelo painel.
+version = 1
+
+[hardware]
+boost_requires_custom = false   # preenchido a partir da Fase 0 (docs/HARDWARE.md)
+emergency_temp_c = 95.0         # a partir daqui: boost 255 nas duas ventoinhas
+
+[daemon]
+tick_ms = 1000                  # período do loop de telemetria e curva (250..=5000)
+override_until = "power-change" # "power-change" | "manual"
+
+[sensors]
+cpu = "alienware_wmi:CPU"       # "<hwmon name>:<label>" ou "<hwmon name>#<índice>"
+gpu = "alienware_wmi:GPU"
+
+[defaults.ac]
+profile = "balanced-performance"
+control = "firmware"            # "firmware" | "fixed" | "curve"
+fixed = { cpu = 0, gpu = 0 }    # usado quando control = "fixed"
+curve = "equilibrado"           # usado quando control = "curve"
+
+[defaults.battery]
+profile = "balanced"
+control = "firmware"
+fixed = { cpu = 0, gpu = 0 }
+curve = "silencioso"
+
+# Pontos: [temperatura °C, boost 0–255]
+[curves.silencioso]
+cpu = [[50, 0], [70, 38], [80, 102], [90, 204], [95, 255]]
+gpu = [[50, 0], [70, 38], [80, 102], [90, 204], [95, 255]]
+hysteresis_c = 3.0
+ramp_up_per_s = 40
+ramp_down_per_s = 10
+
+[curves.equilibrado]
+cpu = [[45, 0], [60, 51], [70, 115], [80, 179], [90, 255]]
+gpu = [[45, 0], [60, 51], [70, 115], [80, 179], [90, 255]]
+hysteresis_c = 3.0
+ramp_up_per_s = 40
+ramp_down_per_s = 10
+
+[curves.agressivo]
+cpu = [[40, 26], [55, 102], [65, 166], [75, 217], [85, 255]]
+gpu = [[40, 26], [55, 102], [65, 166], [75, 217], [85, 255]]
+hysteresis_c = 2.0
+ramp_up_per_s = 80
+ramp_down_per_s = 15
