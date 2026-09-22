@@ -30,6 +30,9 @@ these are upper bounds.
 | 128 (50%) | 5802 / 5940 | 6622 / 6557 |
 | 255 (100%) | 6600 / 6622 | 6600 / 6688 |
 
+Extra point from the M2 acceptance test (same day, on battery): `balanced`
+with boost 51 (20%) settles at 3276 / 3260 rpm.
+
 ### T4: profile change
 
 - `custom` → `balanced` with boost 128/255: both read back **0** after 2 s.
