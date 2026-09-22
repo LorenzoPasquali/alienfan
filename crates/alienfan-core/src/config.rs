@@ -21,6 +21,8 @@ use crate::model::{
 };
 
 pub const CONFIG_PATH: &str = "/etc/alienfan/config.toml";
+/// Overrides [`CONFIG_PATH`] in tests.
+pub const CONFIG_ENV: &str = "ALIENFAN_CONFIG";
 pub const CONFIG_VERSION: u32 = 1;
 pub const CONFIG_MODE: u32 = 0o664;
 
@@ -233,6 +235,11 @@ impl<'de> Deserialize<'de> for SensorRef {
             .parse()
             .map_err(serde::de::Error::custom)
     }
+}
+
+/// `$ALIENFAN_CONFIG`, or [`CONFIG_PATH`].
+pub fn config_path() -> PathBuf {
+    std::env::var_os(CONFIG_ENV).map_or_else(|| CONFIG_PATH.into(), PathBuf::from)
 }
 
 const fn default_version() -> u32 {

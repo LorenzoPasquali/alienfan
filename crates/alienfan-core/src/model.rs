@@ -89,6 +89,18 @@ str_enum! {
 }
 
 impl Profile {
+    /// Name shown in the UI (SPEC 12.3).
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Cool => "Frio",
+            Self::Quiet => "Silencioso",
+            Self::Balanced => "Equilibrado",
+            Self::BalancedPerformance => "Equilibrado+",
+            Self::Performance => "Desempenho (G-Mode)",
+            Self::Custom => "Personalizado",
+        }
+    }
+
     /// Parses a sysfs `choices` line, skipping names this build does not know.
     pub fn parse_choices(line: &str) -> Vec<Self> {
         line.split_whitespace()
@@ -128,6 +140,25 @@ str_enum! {
         Firmware = "firmware",
         Fixed = "fixed",
         Curve = "curve",
+    }
+}
+
+impl PowerSource {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Ac => "Na tomada",
+            Self::Battery => "Na bateria",
+        }
+    }
+}
+
+impl ControlKind {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Firmware => "Automático (firmware)",
+            Self::Fixed => "Manual",
+            Self::Curve => "Curva",
+        }
     }
 }
 

@@ -1,0 +1,18 @@
+# Applies the default thermal profile at boot, before any login.
+# No systemd-udev-settle: `--wait` polls for the driver's sysfs nodes.
+[Unit]
+Description=alienfan: aplica o perfil térmico padrão no boot
+After=tlp.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/alienfan apply --boot --wait 10
+RemainAfterExit=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+
+[Install]
+WantedBy=multi-user.target

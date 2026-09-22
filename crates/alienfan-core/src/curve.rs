@@ -10,6 +10,9 @@ pub const MAX_POINTS: usize = 16;
 pub const MAX_TEMP_C: f64 = 105.0;
 pub const MAX_HYSTERESIS_C: f64 = 15.0;
 pub const MAX_NAME_LEN: usize = 32;
+pub const DEFAULT_HYSTERESIS_C: f64 = 3.0;
+pub const DEFAULT_RAMP_UP_PER_S: u16 = 40;
+pub const DEFAULT_RAMP_DOWN_PER_S: u16 = 10;
 
 /// One curve point. In TOML it is written `[temp_c, boost]`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -69,13 +72,13 @@ struct CurveDef {
 }
 
 const fn default_hysteresis() -> f64 {
-    3.0
+    DEFAULT_HYSTERESIS_C
 }
 const fn default_ramp_up() -> u16 {
-    40
+    DEFAULT_RAMP_UP_PER_S
 }
 const fn default_ramp_down() -> u16 {
-    10
+    DEFAULT_RAMP_DOWN_PER_S
 }
 
 impl TryFrom<CurveDef> for Curve {

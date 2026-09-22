@@ -1,0 +1,5 @@
+# Dá ao grupo alienfan escrita só nos nós usados pelo alienfan.
+ACTION=="add|change", SUBSYSTEM=="platform-profile", ATTR{name}=="alienware-wmi", \
+  RUN+="/bin/sh -c 'chgrp alienfan /sys%p/profile && chmod 0664 /sys%p/profile'"
+ACTION=="add|change", SUBSYSTEM=="hwmon", ATTR{name}=="alienware_wmi", \
+  RUN+="/bin/sh -c 'chgrp alienfan /sys%p/fan1_boost /sys%p/fan2_boost && chmod 0664 /sys%p/fan1_boost /sys%p/fan2_boost'"

@@ -1,0 +1,59 @@
+{
+  "daemon": false,
+  "health": "ok",
+  "health_message": "",
+  "power_source": "ac",
+  "profile": "balanced",
+  "available_profiles": [
+    "cool",
+    "quiet",
+    "balanced",
+    "balanced-performance",
+    "performance",
+    "custom"
+  ],
+  "control": "firmware",
+  "active_curve": "",
+  "override_active": false,
+  "boost_requires_custom": false,
+  "fans": [
+    {
+      "id": "cpu",
+      "label": "CPU Fan",
+      "rpm": 1718,
+      "rpm_max": 6000,
+      "boost": 0,
+      "boost_pct": 0,
+      "target_boost": 0,
+      "temp_c": 46.0,
+      "sensor": "alienware_wmi:CPU"
+    },
+    {
+      "id": "gpu",
+      "label": "GPU Fan",
+      "rpm": 0,
+      "rpm_max": 6000,
+      "boost": 0,
+      "boost_pct": 0,
+      "target_boost": 0,
+      "temp_c": 38.0,
+      "sensor": "alienware_wmi:GPU"
+    }
+  ],
+  "temps": {
+    "alienware_wmi:CPU": 46.0,
+    "alienware_wmi:GPU": 38.0,
+    "coretemp:Package id 0": 51.0,
+    "coretemp:Core 0": 49.0,
+    "dell_ddv#1": 41.0,
+    "dell_ddv#2": 42.0,
+    "dell_ddv#3": 43.0,
+    "dell_ddv#4": 44.0,
+    "dell_ddv#5": 45.0,
+    "dell_ddv#6": 46.0,
+    "dell_ddv:Memory": 47.0,
+    "dell_ddv:Unknown": 48.0,
+    "dell_ddv:Video": 49.0,
+    "dell_smm#1": 47.0
+  }
+}

@@ -277,6 +277,12 @@ pub fn read_temp(path: &Path) -> Result<f64> {
     read_parsed::<i32>(path).map(|m| f64::from(m) / 1000.0)
 }
 
+/// Whether this process may write `path`. Opening a sysfs attribute does
+/// not call the driver; only a write does.
+pub fn is_writable(path: &Path) -> bool {
+    fs::OpenOptions::new().write(true).open(path).is_ok()
+}
+
 fn write_if_changed(path: &Path, value: &str, force: bool) -> Result<bool> {
     if !force && read_trimmed(path)? == value {
         return Ok(false);
