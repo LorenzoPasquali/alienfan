@@ -45,7 +45,7 @@ fn message(e: zbus::Error) -> String {
 
 // ---------- JSON shapes of src/api.ts ----------
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DaemonState {
     version: String,
@@ -62,7 +62,7 @@ struct DaemonState {
     emergency_temp_c: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Fan {
     id: String,
@@ -75,7 +75,7 @@ struct Fan {
     sensor: String,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct Telemetry {
     fans: Vec<Fan>,
     temps: HashMap<String, f64>,
