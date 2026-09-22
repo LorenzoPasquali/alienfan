@@ -225,9 +225,11 @@ fn apply_default(ctx: &Ctx, wait: Duration) -> CliResult {
         config.hardware.boost_requires_custom,
         FanPair::default(),
     );
+    // What the firmware left, for the boot log (Phase 0, T6/T7).
+    let before = format!("{} {}", hw.profile()?, boost_text(current_boost(&hw)?));
     apply_target(&hw, target)?;
     println!(
-        "{}: perfil {} ({}), boost {}",
+        "{}: perfil {} ({}), boost {} (antes: {before})",
         source.label(),
         target.profile.label(),
         target.profile,

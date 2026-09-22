@@ -1,0 +1,36 @@
+# alienfan fase 0 — 2026-09-22T11:59:39-03:00
+# kernel=7.0.0-31-generic bios=1.15.0 ac=0
+# P=/sys/class/platform-profile/platform-profile-0 H=/sys/class/hwmon/hwmon7 WAIT=20s
+# choices=cool quiet balanced balanced-performance performance custom
+# aviso: awccd ativo durante o teste
+# aviso: fora da tomada
+inicial: profile=balanced b1=0 b2=0 rpm1=0 rpm2=0 tcpu=53000 tgpu=43000
+
+## T1: RPM base por perfil, boost 0
+T1 quiet: profile=quiet b1=0 b2=0 rpm1=0 rpm2=0 tcpu=55000 tgpu=44000
+T1 cool: profile=cool b1=0 b2=0 rpm1=4285 rpm2=4398 tcpu=53000 tgpu=43000
+T1 balanced: profile=balanced b1=0 b2=0 rpm1=1766 rpm2=1732 tcpu=53000 tgpu=42000
+T1 balanced-performance: profile=balanced-performance b1=0 b2=0 rpm1=2391 rpm2=2540 tcpu=53000 tgpu=42000
+T1 performance: profile=performance b1=100 b2=100 rpm1=6204 rpm2=6166 tcpu=50000 tgpu=40000
+T1 custom: profile=custom b1=0 b2=0 rpm1=2861 rpm2=2944 tcpu=51000 tgpu=39000
+
+## T2: boost fora do custom (balanced)
+T2 b=0: profile=balanced b1=0 b2=0 rpm1=1768 rpm2=1746 tcpu=52000 tgpu=40000
+T2 b=128: profile=balanced b1=128 b2=128 rpm1=5802 rpm2=5940 tcpu=46000 tgpu=39000
+T2 b=255: profile=balanced b1=255 b2=255 rpm1=6600 rpm2=6622 tcpu=43000 tgpu=36000
+
+## T3: boost dentro do custom
+T3 b=0: profile=custom b1=0 b2=0 rpm1=2992 rpm2=3213 tcpu=43000 tgpu=35000
+T3 b=128: profile=custom b1=128 b2=128 rpm1=6622 rpm2=6557 tcpu=42000 tgpu=34000
+T3 b=255: profile=custom b1=255 b2=255 rpm1=6600 rpm2=6688 tcpu=40000 tgpu=33000
+
+## T4: trocar de perfil zera o boost?
+T4a custom->balanced (fan1=128, fan2=255), +2s: profile=balanced b1=0 b2=0 rpm1=6322 rpm2=6644 tcpu=40000 tgpu=33000
+T4b balanced b=128, +20s: profile=balanced b1=128 b2=128 rpm1=6622 rpm2=6666 tcpu=40000 tgpu=32000
+T4c balanced->quiet, +2s: profile=quiet b1=0 b2=0 rpm1=6302 rpm2=6666 tcpu=40000 tgpu=32000
+T4d quiet, +20s: profile=quiet b1=0 b2=0 rpm1=2155 rpm2=2586 tcpu=40000 tgpu=32000
+
+restaurado: profile=balanced b1=0 b2=0 rpm1=2125 rpm2=2560 tcpu=40000 tgpu=32000
+log: /git/alienfan/docs/fase0-20260922-115939.log
+Próximo: T5 (suspender) e T6 (reboot) com 'sudo bash docs/fase0.sh prep'.
+T7 fica para depois do drop-in do TLP (M2).

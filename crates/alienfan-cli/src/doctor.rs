@@ -84,7 +84,7 @@ pub fn run(ctx: &Ctx, json: bool) -> ExitCode {
         check_awccd(),
         check_daemon(),
         check_extension(),
-        check_config(&ctx.config_path),
+        check_config(&ctx.config_path, group.as_ref()),
     ];
     let report = Report {
         ok: checks.iter().all(|c| c.level != Level::Fail),
@@ -170,12 +170,15 @@ fn check_permissions(hw: &Result<Hardware, Error>, group: Option<&Group>) -> Che
     ];
     let wrong: Vec<String> = nodes
         .iter()
-        .filter_map(|path| {
-            let meta = fs::metadata(path).ok()?;
-            let group_ok = group.is_some_and(|g| g.gid == meta.gid());
-            let mode = meta.mode() & 0o777;
-            (!group_ok || mode & 0o020 == 0)
-                .then(|| format!("{} (gid {}, {mode:o})", path.display(), meta.gid()))
+        .filter(|path| !group_writable(path, group))
+        .map(|path| match fs::metadata(path) {
+            Ok(m) => format!(
+                "{} (gid {}, {:o})",
+                path.display(),
+                m.gid(),
+                m.mode() & 0o777
+            ),
+            Err(_) => path.display().to_string(),
         })
         .collect();
     if !wrong.is_empty() {
@@ -355,7 +358,7 @@ fn check_extension() -> Check {
     }
 }
 
-fn check_config(path: &Path) -> Check {
+fn check_config(path: &Path, group: Option<&Group>) -> Check {
     const ID: &str = "config";
     if !path.exists() {
         return Check::warn(
@@ -370,10 +373,10 @@ fn check_config(path: &Path) -> Check {
             format!("{}: {e}", path.display()),
             format!("corrija o arquivo ou restaure {}.bak", path.display()),
         ),
-        Ok(_) if !is_writable(path) => Check::warn(
+        Ok(_) if !group_writable(path, group) => Check::warn(
             ID,
             format!(
-                "{} válida, mas sem escrita: não dá para salvar padrões",
+                "{} válida, mas sem escrita do grupo {GROUP}",
                 path.display()
             ),
             format!(
@@ -381,8 +384,22 @@ fn check_config(path: &Path) -> Check {
                 path.display()
             ),
         ),
+        Ok(_) if !is_writable(path) => Check::warn(
+            ID,
+            format!(
+                "{} válida, mas esta sessão ainda não pode salvar",
+                path.display()
+            ),
+            "veja \"grupo\"",
+        ),
         Ok(_) => Check::ok(ID, format!("{} válida", path.display())),
     }
+}
+
+/// Owned by the group, with the group write bit.
+fn group_writable(path: &Path, group: Option<&Group>) -> bool {
+    fs::metadata(path)
+        .is_ok_and(|m| group.is_some_and(|g| g.gid == m.gid()) && m.mode() & 0o020 != 0)
 }
 
 fn systemctl(args: &[&str]) -> Option<String> {
