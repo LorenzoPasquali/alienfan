@@ -19,7 +19,8 @@ pub enum Write {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Target {
     pub profile: Profile,
-    pub boost: FanPair<Boost>,
+    /// `None`: the firmware picks the boost ("Automático (firmware)").
+    pub boost: Option<FanPair<Boost>>,
 }
 
 impl Target {
@@ -32,9 +33,9 @@ impl Target {
         curve_boost: FanPair<Boost>,
     ) -> Self {
         let boost = match &preset.control {
-            Control::Firmware => FanPair::both(Boost::MIN),
-            Control::Fixed(boost) => *boost,
-            Control::Curve(_) => curve_boost,
+            Control::Firmware => None,
+            Control::Fixed(boost) => Some(*boost),
+            Control::Curve(_) => Some(curve_boost),
         };
         Self {
             profile: effective_profile(preset, boost_requires_custom),
@@ -51,14 +52,26 @@ pub fn effective_profile(preset: &Preset, boost_requires_custom: bool) -> Profil
     }
 }
 
-/// Profile first (only if it changes), then both boosts.
+/// Profile first (only if it changes), then the boosts.
+///
+/// A profile change sets the firmware's own boost (0, or 100 in
+/// `performance`; Phase 0, T1 and T4). So under firmware control nothing
+/// is written after one; without a profile change, a leftover manual boost
+/// is cleared to 0.
 pub fn plan(target: &Target, current_profile: Profile) -> Vec<Write> {
     let profile_changes = target.profile != current_profile;
     let profile = profile_changes.then_some(Write::Profile(target.profile));
-    let boosts = FanId::ALL.iter().map(|&fan| Write::Boost {
-        fan,
-        boost: target.boost[fan],
-        force: profile_changes,
+    let boost = match target.boost {
+        Some(boost) => Some((boost, profile_changes)),
+        None if profile_changes => None,
+        None => Some((FanPair::both(Boost::MIN), false)),
+    };
+    let boosts = boost.into_iter().flat_map(|(boost, force)| {
+        FanId::ALL.iter().map(move |&fan| Write::Boost {
+            fan,
+            boost: boost[fan],
+            force,
+        })
     });
     profile.into_iter().chain(boosts).collect()
 }
@@ -69,6 +82,14 @@ mod tests {
 
     fn preset(profile: Profile, control: Control) -> Preset {
         Preset { profile, control }
+    }
+
+    fn boost(fan: FanId, value: u8, force: bool) -> Write {
+        Write::Boost {
+            fan,
+            boost: Boost(value),
+            force,
+        }
     }
 
     #[test]
@@ -85,22 +106,28 @@ mod tests {
             plan(&target, Profile::Balanced),
             [
                 Write::Profile(Profile::Quiet),
-                Write::Boost {
-                    fan: FanId::Cpu,
-                    boost: Boost(10),
-                    force: true
-                },
-                Write::Boost {
-                    fan: FanId::Gpu,
-                    boost: Boost(20),
-                    force: true
-                },
+                boost(FanId::Cpu, 10, true),
+                boost(FanId::Gpu, 20, true),
             ]
         );
     }
 
     #[test]
-    fn same_profile_is_not_written() {
+    fn firmware_control_leaves_the_boost_to_a_profile_change() {
+        let target = Target::resolve(
+            &preset(Profile::Performance, Control::Firmware),
+            false,
+            FanPair::default(),
+        );
+        // G-Mode sets its own boost: do not write over it.
+        assert_eq!(
+            plan(&target, Profile::Balanced),
+            [Write::Profile(Profile::Performance)]
+        );
+    }
+
+    #[test]
+    fn firmware_control_clears_a_leftover_boost() {
         let target = Target::resolve(
             &preset(Profile::Quiet, Control::Firmware),
             false,
@@ -108,18 +135,7 @@ mod tests {
         );
         assert_eq!(
             plan(&target, Profile::Quiet),
-            [
-                Write::Boost {
-                    fan: FanId::Cpu,
-                    boost: Boost(0),
-                    force: false
-                },
-                Write::Boost {
-                    fan: FanId::Gpu,
-                    boost: Boost(0),
-                    force: false
-                },
-            ]
+            [boost(FanId::Cpu, 0, false), boost(FanId::Gpu, 0, false)]
         );
     }
 
@@ -138,7 +154,7 @@ mod tests {
         let curve = preset(Profile::Quiet, Control::Curve("x".into()));
         let t = Target::resolve(&curve, true, FanPair::both(Boost(7)));
         assert_eq!(t.profile, Profile::Custom);
-        assert_eq!(t.boost, FanPair::both(Boost(7)));
+        assert_eq!(t.boost, Some(FanPair::both(Boost(7))));
 
         let firmware = preset(Profile::Quiet, Control::Firmware);
         assert_eq!(
@@ -152,6 +168,6 @@ mod tests {
         let curve = preset(Profile::Quiet, Control::Curve("x".into()));
         let t = Target::resolve(&curve.for_boot(), true, FanPair::both(Boost(99)));
         assert_eq!(t.profile, Profile::Quiet);
-        assert_eq!(t.boost, FanPair::both(Boost::MIN));
+        assert_eq!(t.boost, None);
     }
 }

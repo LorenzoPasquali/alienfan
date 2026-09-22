@@ -214,6 +214,10 @@ fn apply_uses_the_default_of_the_power_source() {
     let out = env.run(&["apply"]);
     assert_eq!(code(&out), 0, "{}", stderr(&out));
     assert_eq!(env.read(PROFILE), "balanced-performance");
+    // The profile change gives the boost back to the firmware.
+    assert_eq!(env.read(BOOST1), "100");
+    // With the profile already right, a leftover boost is cleared.
+    assert_eq!(code(&env.run(&["apply"])), 0);
     assert_eq!(env.read(BOOST1), "0");
 
     env.write("class/power_supply/AC/online", "0");

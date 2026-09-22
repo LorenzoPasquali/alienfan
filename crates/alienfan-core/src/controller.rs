@@ -186,8 +186,9 @@ impl Controller {
         self.output
     }
 
-    /// Forgets what was written, so the next tick writes both fans. Call it
-    /// after a profile change, a resume, or a failed write.
+    /// Forgets what was written, so the next tick writes both fans (under
+    /// firmware control: writes nothing). Call it after a profile change, a
+    /// resume, or a failed write.
     pub fn invalidate(&mut self) {
         self.written = FanPair::both(None);
     }
@@ -272,12 +273,17 @@ impl Controller {
     }
 
     fn take_writes(&mut self) -> Vec<(FanId, Boost)> {
-        let curve = matches!(self.mode, Mode::Curve(_)) && self.emergency.is_none();
+        let calm = self.emergency.is_none();
+        let curve = matches!(self.mode, Mode::Curve(_)) && calm;
+        // Under firmware control the firmware owns the boost (a profile
+        // change sets it, e.g. 100 in G-Mode): only undo a boost we wrote.
+        let firmware = matches!(self.mode, Mode::Firmware) && calm;
         let mut writes = Vec::new();
         for fan in FanId::ALL.iter().copied() {
             let want = self.output[fan];
             let write = match self.written[fan] {
-                None => true,
+                None => !firmware,
+                Some(had) if firmware => had != Boost::MIN,
                 Some(had) if curve => {
                     had != want
                         && (had.0.abs_diff(want.0) >= WRITE_STEP
@@ -476,10 +482,29 @@ mod tests {
 
     #[test]
     fn invalidate_rewrites_both_fans() {
-        let mut c = Controller::new(Mode::Firmware, 95.0, FanPair::default());
+        let fixed = Mode::Fixed(FanPair::both(Boost(30)));
+        let mut c = Controller::new(fixed, 95.0, FanPair::both(Boost(30)));
         assert!(c.tick(secs(0), FanPair::both(Some(50.0))).writes.is_empty());
         c.invalidate();
         assert_eq!(c.tick(secs(1), FanPair::both(Some(50.0))).writes.len(), 2);
+    }
+
+    #[test]
+    fn firmware_control_only_undoes_our_own_boost() {
+        // A leftover boost is cleared once.
+        let mut c = Controller::new(Mode::Firmware, 95.0, FanPair::both(Boost(128)));
+        let o = c.tick(secs(0), FanPair::both(Some(50.0)));
+        assert_eq!(o.writes, [(FanId::Cpu, Boost(0)), (FanId::Gpu, Boost(0))]);
+        assert!(c.tick(secs(1), FanPair::both(Some(50.0))).writes.is_empty());
+        // After a profile change the firmware's own boost (G-Mode) stays.
+        c.invalidate();
+        assert!(c.tick(secs(2), FanPair::both(Some(50.0))).writes.is_empty());
+        // Leaving an emergency still hands the fans back.
+        c.tick(secs(3), FanPair::both(Some(99.0)));
+        for s in 4..=14 {
+            c.tick(secs(s), FanPair::both(Some(50.0)));
+        }
+        assert_eq!(c.output(), FanPair::both(Boost::MIN));
     }
 
     #[test]

@@ -138,12 +138,38 @@ fn power_change_applies_the_battery_default_and_ends_the_override() {
     fx.write(AC_ONLINE, "0");
     s.tick(fx.at(1));
     assert_eq!(fx.read(PROFILE), "balanced");
-    assert_eq!(fx.boosts(), pair("0", "0"));
+    // The profile change hands the boost to the firmware (which resets it
+    // on real hardware); the daemon writes nothing over it.
+    assert_eq!(fx.boosts(), pair("80", "80"));
     let p = s.props();
     assert_eq!(
         (p.power_source.as_str(), p.override_active),
         ("battery", false)
     );
+}
+
+#[test]
+fn back_to_firmware_on_the_same_profile_clears_the_boost() {
+    let fx = Fx::new();
+    let mut s = fx.state();
+    s.set_fixed_boost("all", 80, fx.at(0)).unwrap();
+    s.restore_default(fx.at(1)).unwrap();
+    assert_eq!(fx.read(PROFILE), "balanced-performance");
+    assert_eq!(fx.boosts(), pair("0", "0"));
+}
+
+#[test]
+fn firmware_control_keeps_the_g_mode_boost() {
+    let fx = Fx::new();
+    let mut s = fx.state();
+    s.set_profile("performance", fx.at(0)).unwrap();
+    // The firmware sets boost 100 with G-Mode (Phase 0, T1).
+    fx.write(BOOST1, "100");
+    fx.write(BOOST2, "100");
+    for t in 1..=3 {
+        s.tick(fx.at(t));
+    }
+    assert_eq!(fx.boosts(), pair("100", "100"));
 }
 
 #[test]

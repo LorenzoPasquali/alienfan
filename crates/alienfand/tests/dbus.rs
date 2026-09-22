@@ -209,7 +209,7 @@ async fn daemon_over_dbus() {
     })
     .await;
     assert_eq!(daemon.read(PROFILE), "balanced");
-    assert_eq!(daemon.read(BOOST1), "0");
+    assert_eq!(proxy.control().await.unwrap(), "firmware");
 
     // The introspection matches the published XML.
     let introspect = zbus::fdo::IntrospectableProxy::builder(&conn)

@@ -56,10 +56,12 @@ pub fn profile_list(ctx: &Ctx) -> CliResult {
 
 pub fn profile_set(ctx: &Ctx, profile: Profile) -> CliResult {
     let hw = ctx.hardware()?;
-    // Rewrites the current boost: a profile change may reset it.
+    // Keeps a manual boost (a profile change resets it); with no boost the
+    // firmware picks its own for the new profile.
+    let boost = current_boost(&hw)?;
     let target = Target {
         profile,
-        boost: current_boost(&hw)?,
+        boost: (boost != FanPair::both(Boost::MIN)).then_some(boost),
     };
     apply_target(&hw, target)?;
     println!("Perfil: {} ({profile})", profile.label());
@@ -233,7 +235,9 @@ fn apply_default(ctx: &Ctx, wait: Duration) -> CliResult {
         source.label(),
         target.profile.label(),
         target.profile,
-        boost_text(target.boost)
+        target
+            .boost
+            .map_or_else(|| "do firmware".to_owned(), boost_text)
     );
     Ok(())
 }
