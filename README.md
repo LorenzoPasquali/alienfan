@@ -8,12 +8,12 @@ routine. The full design is in [SPEC.md](SPEC.md).
 
 | Milestone | What | State |
 |---|---|---|
-| M0 | Hardware validation (`docs/fase0.sh`, `docs/HARDWARE.md`) | waiting for the run |
+| M0 | Hardware validation (`docs/fase0.sh`, `docs/HARDWARE.md`) | run 1 done (battery); run 2 on AC pending |
 | M1 | `alienfan-core`: model, config, curve engine, sysfs | done |
 | M2 | `alienfan` CLI (direct mode), udev rule, boot service, TLP drop-in, installer | done |
 | M3 | `alienfand` daemon over D-Bus (curve, power source, resume); CLI through it | done |
-| M4 | GNOME Quick Settings extension | next |
-| M5 | Tauri panel | |
+| M4 | GNOME Quick Settings extension | done |
+| M5 | Tauri panel | next |
 | M6 | awcc removal, final uninstaller, docs | |
 
 ## Build and test
@@ -99,6 +99,23 @@ also started by D-Bus activation. Logs: `journalctl --user -u alienfand`
 
 ```bash
 busctl --user introspect io.github.lorenzopasquali.AlienFan /io/github/lorenzopasquali/AlienFan
+```
+
+## GNOME extension
+
+`gnome-extension/alienfan@lorenzopasquali.github.io`, for GNOME Shell 46
+only (SPEC 2.4). The installer copies it to
+`~/.local/share/gnome-shell/extensions/`; enable it with
+`gnome-extensions enable alienfan@lorenzopasquali.github.io` after logging in
+again. Its `dbus.js` embeds the interface XML; `cargo test -p alienfan-proto`
+fails if the two copies differ.
+
+The extension was checked in an isolated headless GNOME Shell 46 (own bus,
+dconf and data dirs): it enables, disables and re-enables without JS errors,
+with and without the daemon. Look for errors with
+
+```bash
+journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i alienfan
 ```
 
 ## Decisions not fixed by the spec

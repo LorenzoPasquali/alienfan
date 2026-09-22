@@ -161,6 +161,16 @@ mod tests {
     }
 
     #[test]
+    fn gnome_extension_has_the_same_xml() {
+        let js =
+            include_str!("../../../gnome-extension/alienfan@lorenzopasquali.github.io/dbus.js");
+        assert!(
+            js.contains(&format!("`{INTERFACE_XML}`")),
+            "regenerate the XML in the extension's dbus.js"
+        );
+    }
+
+    #[test]
     fn dict_signatures() {
         assert_eq!(FanTelemetry::SIGNATURE, "a{sv}");
         assert_eq!(PresetDict::SIGNATURE, "a{sv}");

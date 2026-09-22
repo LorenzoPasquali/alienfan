@@ -1,0 +1,31 @@
+/* alienfan: only alienfan- classes, so the Shell theme stays untouched.
+   The two colors read on both the light and the dark Zorin themes. */
+
+.alienfan-health {
+  font-weight: bold;
+  color: #c88800;
+}
+
+.alienfan-health.alienfan-emergency {
+  color: #e01b24;
+}
+
+.alienfan-note {
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.alienfan-telemetry {
+  font-feature-settings: "tnum";
+}
+
+.alienfan-boost-name {
+  min-width: 3em;
+  font-weight: bold;
+}
+
+.alienfan-boost-value {
+  min-width: 8.5em;
+  text-align: right;
+  font-feature-settings: "tnum";
+}

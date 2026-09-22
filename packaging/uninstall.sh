@@ -6,12 +6,17 @@ set -euo pipefail
 
 GROUP=alienfan
 ETC=/etc/alienfan
+UUID=alienfan@lorenzopasquali.github.io
 
 say() { printf '\n==> %s\n' "$*"; }
 run_sudo() { printf '+ sudo %s\n' "$*"; sudo "$@"; }
 ask() { local reply; read -r -p "$1 [s/N] " reply; [[ $reply == [sS]* ]]; }
 
 [[ $EUID -ne 0 ]] || { echo "rode como usuário, sem sudo" >&2; exit 1; }
+
+say "Extensão GNOME"
+gnome-extensions disable "$UUID" 2>/dev/null || true
+rm -rf "${HOME:?}/.local/share/gnome-shell/extensions/$UUID"
 
 say "Daemon da sessão"
 if [[ -e /usr/lib/systemd/user/alienfand.service ]]; then
