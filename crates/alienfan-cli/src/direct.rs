@@ -40,7 +40,7 @@ fn apply_target(hw: &Hardware, target: Target) -> CliResult {
     Ok(())
 }
 
-fn boost_text(boost: FanPair<Boost>) -> String {
+pub fn boost_text(boost: FanPair<Boost>) -> String {
     format!("CPU {}% · GPU {}%", boost.cpu.pct(), boost.gpu.pct())
 }
 
@@ -131,7 +131,7 @@ pub fn control(ctx: &Ctx, kind: ControlKind, curve: Option<&str>) -> CliResult {
     Ok(())
 }
 
-fn preset_text(p: &PresetConfig) -> String {
+pub fn preset_text(p: &PresetConfig) -> String {
     let control = match p.control {
         ControlKind::Firmware => p.control.label().to_owned(),
         ControlKind::Fixed => format!("Manual ({})", boost_text(p.fixed)),

@@ -1,8 +1,10 @@
 //! `alienfan`: command line for the alienfan thermal profile and fan control.
 //!
-//! Until the daemon exists (M3) every command acts on sysfs directly.
+//! Commands go to `alienfand` when it runs, and act on sysfs directly
+//! otherwise.
 
 mod curves;
+mod daemon;
 mod direct;
 mod doctor;
 mod status;
@@ -14,6 +16,8 @@ use std::time::Duration;
 use alienfan_core::config::{self, ConfigFile};
 use alienfan_core::{Boost, ControlKind, Error, FanId, Hardware, Profile, SysfsRoot};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+
+use crate::daemon::Daemon;
 
 /// Exit codes of SPEC 10.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,6 +64,8 @@ pub type CliResult<T = ()> = Result<T, Failure>;
 pub struct Ctx {
     pub root: SysfsRoot,
     pub config_path: PathBuf,
+    /// `ALIENFAN_SYSFS_ROOT` or `ALIENFAN_CONFIG` is set.
+    pub overridden: bool,
 }
 
 impl Ctx {
@@ -67,6 +73,9 @@ impl Ctx {
         Self {
             root: SysfsRoot::from_env(),
             config_path: config::config_path(),
+            overridden: [SysfsRoot::ENV, config::CONFIG_ENV]
+                .iter()
+                .any(|v| std::env::var_os(v).is_some()),
         }
     }
 
@@ -226,7 +235,47 @@ fn main() -> ExitCode {
 
 fn run(command: Command, ctx: &Ctx) -> CliResult<ExitCode> {
     match command {
-        Command::Status { json, watch } => return status::run(ctx, json, watch),
+        // These two always act alone (SPEC 10).
+        Command::Apply { boot, wait } => {
+            let wait = wait.unwrap_or(if boot { 10 } else { 0 });
+            direct::apply(ctx, boot, Duration::from_secs(wait))?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Doctor { json } => Ok(doctor::run(ctx, json)),
+        // A test tree must never reach the real daemon.
+        other if ctx.overridden => run_direct(other, ctx),
+        other => match Daemon::connect() {
+            Some(daemon) => run_daemon(other, &daemon),
+            None => run_direct(other, ctx),
+        },
+    }
+}
+
+fn run_daemon(command: Command, d: &Daemon) -> CliResult<ExitCode> {
+    match command {
+        Command::Status { json, watch } => return status::run(json, watch, || d.status()),
+        Command::Profile(ProfileCommand::List) => d.profile_list()?,
+        Command::Profile(ProfileCommand::Set { profile }) => d.profile_set(profile)?,
+        Command::Boost { fan, value } => d.boost(fan, value)?,
+        Command::Control { kind, curve } => d.control(kind, curve.as_deref())?,
+        Command::Curve(CurveCommand::List) => d.curve_list()?,
+        Command::Curve(CurveCommand::Show { name }) => d.curve_show(&name)?,
+        Command::Curve(CurveCommand::Set(args)) => d.curve_set(&args)?,
+        Command::Default(DefaultCommand::Show) => d.default_show()?,
+        Command::Default(DefaultCommand::Save(t)) => {
+            d.default_save(t.ac || t.both, t.battery || t.both)?;
+        }
+        Command::Default(DefaultCommand::Reset) => d.default_reset()?,
+        Command::Apply { .. } | Command::Doctor { .. } => unreachable!("handled in run"),
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_direct(command: Command, ctx: &Ctx) -> CliResult<ExitCode> {
+    match command {
+        Command::Status { json, watch } => {
+            return status::run(json, watch, || Ok(status::collect_direct(ctx)));
+        }
         Command::Profile(ProfileCommand::List) => direct::profile_list(ctx)?,
         Command::Profile(ProfileCommand::Set { profile }) => direct::profile_set(ctx, profile)?,
         Command::Boost { fan, value } => direct::boost(ctx, fan.fans(), value)?,
@@ -239,11 +288,7 @@ fn run(command: Command, ctx: &Ctx) -> CliResult<ExitCode> {
             direct::default_save(ctx, t.ac || t.both, t.battery || t.both)?;
         }
         Command::Default(DefaultCommand::Reset) => direct::default_reset(ctx)?,
-        Command::Apply { boot, wait } => {
-            let wait = wait.unwrap_or(if boot { 10 } else { 0 });
-            direct::apply(ctx, boot, Duration::from_secs(wait))?;
-        }
-        Command::Doctor { json } => return Ok(doctor::run(ctx, json)),
+        Command::Apply { .. } | Command::Doctor { .. } => unreachable!("handled in run"),
     }
     Ok(ExitCode::SUCCESS)
 }

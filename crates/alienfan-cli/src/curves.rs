@@ -9,27 +9,27 @@ use crate::{CliResult, Ctx};
 
 #[derive(Args)]
 pub struct SetArgs {
-    name: String,
+    pub name: String,
     /// Pontos da CPU: "temp:boost,…", boost bruto ou com %, ex. "45:0,70:45%,90:100%"
     #[arg(long, value_name = "PONTOS", value_parser = parse_points)]
-    cpu: Points,
+    pub cpu: Points,
     /// Pontos da GPU (padrão: os atuais da curva, ou os da CPU numa curva nova)
     #[arg(long, value_name = "PONTOS", value_parser = parse_points)]
-    gpu: Option<Points>,
+    pub gpu: Option<Points>,
     /// Histerese em °C
     #[arg(long, value_name = "°C")]
-    hysteresis: Option<f64>,
+    pub hysteresis: Option<f64>,
     /// Subida máxima, em unidades de boost por segundo
     #[arg(long, value_name = "N")]
-    ramp_up: Option<u16>,
+    pub ramp_up: Option<u16>,
     /// Descida máxima, em unidades de boost por segundo
     #[arg(long, value_name = "N")]
-    ramp_down: Option<u16>,
+    pub ramp_down: Option<u16>,
 }
 
 /// A whole point list as one argument (clap would split a bare `Vec`).
 #[derive(Debug, Clone, PartialEq)]
-pub struct Points(Vec<CurvePoint>);
+pub struct Points(pub Vec<CurvePoint>);
 
 /// Parses `"45:0,60:20%,90:100%"`.
 pub fn parse_points(s: &str) -> Result<Points, Error> {
@@ -57,24 +57,34 @@ fn points_text(points: &[CurvePoint]) -> String {
 pub fn list(ctx: &Ctx) -> CliResult {
     let file = ctx.config()?;
     let config = file.config();
-    for name in config.curves.keys() {
-        let users: Vec<_> = config
-            .curve_users(name)
-            .into_iter()
-            .map(PowerSource::label)
-            .collect();
+    let entries: Vec<_> = config
+        .curves
+        .keys()
+        .map(|name| (name.clone(), config.curve_users(name)))
+        .collect();
+    print_list(&entries);
+    Ok(())
+}
+
+/// Curve names, each with the defaults that run it.
+pub fn print_list(entries: &[(String, Vec<PowerSource>)]) {
+    for (name, users) in entries {
         if users.is_empty() {
             println!("{name}");
         } else {
-            println!("{name:<16} (padrão: {})", users.join(", ").to_lowercase());
+            let users: Vec<_> = users.iter().map(|s| s.label().to_lowercase()).collect();
+            println!("{name:<16} (padrão: {})", users.join(", "));
         }
     }
-    Ok(())
 }
 
 pub fn show(ctx: &Ctx, name: &str) -> CliResult {
     let file = ctx.config()?;
-    let curve = file.config().curve(name)?;
+    print_curve(name, file.config().curve(name)?);
+    Ok(())
+}
+
+pub fn print_curve(name: &str, curve: &Curve) {
     println!("Curva \"{name}\"");
     for fan in FanId::ALL.iter().copied() {
         println!(
@@ -87,7 +97,6 @@ pub fn show(ctx: &Ctx, name: &str) -> CliResult {
         "  Histerese {} °C · subida {}/s · descida {}/s",
         curve.hysteresis_c, curve.ramp_up_per_s, curve.ramp_down_per_s
     );
-    Ok(())
 }
 
 pub fn set(ctx: &Ctx, args: &SetArgs) -> CliResult {

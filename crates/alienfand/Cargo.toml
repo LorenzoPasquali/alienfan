@@ -1,0 +1,25 @@
+[package]
+name = "alienfand"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alienfan-core = { version = "0.1.0", path = "../alienfan-core" }
+alienfan-proto = { version = "0.1.0", path = "../alienfan-proto" }
+anyhow = "1.0.104"
+futures-util = { version = "0.3.34", default-features = false }
+tokio = { version = "1.53.1", features = ["rt", "macros", "time", "signal", "sync"] }
+tracing = "0.1.44"
+tracing-journald = "0.3.2"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "ansi", "registry", "std"] }
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+zvariant = "5.15"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tokio = { version = "1.53.1", features = ["rt", "macros", "time", "process", "io-util"] }

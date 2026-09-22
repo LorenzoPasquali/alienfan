@@ -165,6 +165,15 @@ impl Controller {
         self.mode = Mode::Curve(CurveEngine::new(curve, self.output));
     }
 
+    /// Swaps the curve in place when one is running, keeping the ramp state
+    /// (e.g. after the curve was edited). Otherwise starts it.
+    pub fn update_curve(&mut self, curve: Curve) {
+        match &mut self.mode {
+            Mode::Curve(engine) => engine.set_curve(curve),
+            _ => self.set_curve(curve),
+        }
+    }
+
     pub fn set_emergency_temp(&mut self, temp_c: f64) {
         self.emergency_temp_c = temp_c;
     }

@@ -1,0 +1,14 @@
+# Per-user daemon. Installed in /usr/lib/systemd/user/.
+[Unit]
+Description=alienfan daemon (ventoinhas Alienware)
+Documentation=file:///git/alienfan/README.md
+
+[Service]
+Type=dbus
+BusName=io.github.lorenzopasquali.AlienFan
+ExecStart=/usr/local/bin/alienfand
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

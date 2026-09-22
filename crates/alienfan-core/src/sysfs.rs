@@ -177,6 +177,11 @@ impl Hardware {
         })
     }
 
+    /// False once the driver is unloaded: the directories go away.
+    pub fn is_present(&self) -> bool {
+        self.profile_dir.is_dir() && self.hwmon_dir.is_dir()
+    }
+
     pub fn profile_path(&self) -> PathBuf {
         self.profile_dir.join("profile")
     }

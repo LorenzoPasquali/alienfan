@@ -1,0 +1,5 @@
+# D-Bus activation: a call to the bus name starts the systemd user unit.
+[D-BUS Service]
+Name=io.github.lorenzopasquali.AlienFan
+Exec=/usr/local/bin/alienfand
+SystemdService=alienfand.service

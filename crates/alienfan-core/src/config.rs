@@ -45,7 +45,8 @@ pub struct Config {
     pub sensors: FanPair<SensorRef>,
     #[serde(default)]
     pub defaults: Defaults,
-    #[serde(default)]
+    /// Without a `[curves]` table, the shipped curves.
+    #[serde(default = "default_curves")]
     pub curves: BTreeMap<String, Curve>,
 }
 
@@ -246,6 +247,11 @@ const fn default_version() -> u32 {
     CONFIG_VERSION
 }
 
+fn default_curves() -> BTreeMap<String, Curve> {
+    // The shipped file has a `[curves]` table, so this does not recurse.
+    Config::default().curves
+}
+
 fn default_sensors() -> FanPair<SensorRef> {
     FanPair::new(
         SensorRef::label("alienware_wmi", "CPU"),
@@ -393,19 +399,10 @@ impl ConfigFile {
     pub fn set_curve(&mut self, name: &str, curve: &Curve) -> Result<()> {
         curve::validate_name(name)?;
         curve.validate()?;
+        let shipped = self.shipped_curves();
         self.edit(|doc| {
-            let curves = table(doc.as_table_mut(), "curves");
-            let t = table(curves, name);
-            for fan in FanId::ALL.iter().copied() {
-                set_value(t, fan.as_str(), points_value(curve, fan).into());
-            }
-            set_value(t, "hysteresis_c", curve.hysteresis_c.into());
-            set_value(t, "ramp_up_per_s", i64::from(curve.ramp_up_per_s).into());
-            set_value(
-                t,
-                "ramp_down_per_s",
-                i64::from(curve.ramp_down_per_s).into(),
-            );
+            let curves = curves_table(doc, &shipped);
+            write_curve(table(curves, name), curve);
         })
     }
 
@@ -418,9 +415,13 @@ impl ConfigFile {
                 used_by: power_label(*source).into(),
             });
         }
+        let shipped = self.shipped_curves();
         self.edit(|doc| {
-            if let Some(curves) = doc.get_mut("curves").and_then(Item::as_table_like_mut) {
-                curves.remove(name);
+            let curves = curves_table(doc, &shipped);
+            curves.remove(name);
+            // An empty but present [curves] keeps the shipped curves away.
+            if curves.is_empty() {
+                curves.set_implicit(false);
             }
         })
     }
@@ -430,6 +431,16 @@ impl ConfigFile {
             let daemon = table(doc.as_table_mut(), "daemon");
             set_value(daemon, "override_until", value.as_str().into());
         })
+    }
+
+    /// The curves in use when the file has no `[curves]` table: they come
+    /// from the shipped config and must be written out before an edit.
+    fn shipped_curves(&self) -> BTreeMap<String, Curve> {
+        if self.doc.contains_key("curves") {
+            BTreeMap::new()
+        } else {
+            self.config.curves.clone()
+        }
     }
 
     fn edit(&mut self, f: impl FnOnce(&mut DocumentMut)) -> Result<()> {
@@ -446,6 +457,28 @@ fn power_label(source: PowerSource) -> &'static str {
         PowerSource::Ac => "da tomada",
         PowerSource::Battery => "da bateria",
     }
+}
+
+/// The `[curves]` table, first filled with `shipped` if it is missing.
+fn curves_table<'a>(doc: &'a mut DocumentMut, shipped: &BTreeMap<String, Curve>) -> &'a mut Table {
+    let curves = table(doc.as_table_mut(), "curves");
+    for (name, curve) in shipped {
+        write_curve(table(curves, name), curve);
+    }
+    curves
+}
+
+fn write_curve(t: &mut Table, curve: &Curve) {
+    for fan in FanId::ALL.iter().copied() {
+        set_value(t, fan.as_str(), points_value(curve, fan).into());
+    }
+    set_value(t, "hysteresis_c", curve.hysteresis_c.into());
+    set_value(t, "ramp_up_per_s", i64::from(curve.ramp_up_per_s).into());
+    set_value(
+        t,
+        "ramp_down_per_s",
+        i64::from(curve.ramp_down_per_s).into(),
+    );
 }
 
 /// Returns `parent[key]` as a standard table, creating or converting it.
@@ -557,7 +590,7 @@ mod tests {
         let c = Config::parse("version = 1\n").unwrap();
         assert_eq!(c.hardware, HardwareConfig::default());
         assert_eq!(c.defaults, Defaults::default());
-        assert!(c.curves.is_empty());
+        assert_eq!(c.curves, Config::default().curves);
     }
 
     #[test]

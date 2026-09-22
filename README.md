@@ -11,8 +11,8 @@ routine. The full design is in [SPEC.md](SPEC.md).
 | M0 | Hardware validation (`docs/fase0.sh`, `docs/HARDWARE.md`) | waiting for the run |
 | M1 | `alienfan-core`: model, config, curve engine, sysfs | done |
 | M2 | `alienfan` CLI (direct mode), udev rule, boot service, TLP drop-in, installer | done |
-| M3 | `alienfand` daemon over D-Bus (curve, power source, resume) | next |
-| M4 | GNOME Quick Settings extension | |
+| M3 | `alienfand` daemon over D-Bus (curve, power source, resume); CLI through it | done |
+| M4 | GNOME Quick Settings extension | next |
 | M5 | Tauri panel | |
 | M6 | awcc removal, final uninstaller, docs | |
 
@@ -83,9 +83,23 @@ alienfan doctor [--json]
 Exit codes: 0 ok, 1 generic, 2 invalid argument, 3 no permission,
 4 hardware not found, 5 daemon error.
 
-Until the daemon exists, every command writes sysfs directly and warns that
-nothing keeps the setting across power changes. `control curve` needs the
-daemon.
+When `alienfand` runs on the session bus, every command goes through it.
+Otherwise the CLI writes sysfs directly and warns that nothing keeps the
+setting across power changes; `control curve` then fails with code 5.
+`apply` and `doctor` always act alone. With `ALIENFAN_SYSFS_ROOT` or
+`ALIENFAN_CONFIG` set, the CLI never talks to the daemon, so a test tree
+cannot reach the real one.
+
+## Daemon
+
+`alienfand` is a systemd user unit (`systemctl --user status alienfand`),
+also started by D-Bus activation. Logs: `journalctl --user -u alienfand`
+(`ALIENFAN_DEBUG=1` logs every sysfs write). The API is in
+`crates/alienfan-proto/io.github.lorenzopasquali.AlienFan1.xml`; try it with
+
+```bash
+busctl --user introspect io.github.lorenzopasquali.AlienFan /io/github/lorenzopasquali/AlienFan
+```
 
 ## Decisions not fixed by the spec
 
@@ -108,5 +122,20 @@ daemon.
 - The existing `/etc/tlp.d/50-alienware.conf` stays. `99-alienfan.conf` is
   read after it and blanks both values; uninstalling brings the 50 file back
   into effect.
+- API additions to SPEC 9 (additive, marked in the XML): `GetCurveOptions`,
+  `SaveCurveWithOptions` (the panel edits hysteresis and ramps),
+  `SetDaemonOption`, and the `OverrideUntil` and `EmergencyTempC` properties.
+- `SetControl("curve", "")` runs the curve named by the current default.
+- `SaveAsDefault` ends the override only when the target includes the
+  current power source; saving the other source's default keeps it.
+- `SetDefault` on the current source applies at once when no override is
+  active, since the hardware follows that default.
+- The daemon notices config edits by polling the file's mtime and size every
+  tick instead of inotify: same effect, and it survives atomic renames.
+- A profile change made outside alienfan (a key, `sudo`) is not fought: the
+  daemon keeps the new profile and rewrites the boost, which the firmware
+  reset.
+- A config without a `[curves]` table uses the shipped curves; the first
+  curve edit writes them into the file.
 - Serde type errors in the config (e.g. a string where a number goes) are
   reported in English; validation errors are in pt-BR.

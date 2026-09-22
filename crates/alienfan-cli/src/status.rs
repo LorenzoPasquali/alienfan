@@ -47,9 +47,15 @@ fn as_map<S: Serializer>(temps: &[(String, f64)], s: S) -> Result<S::Ok, S::Erro
     s.collect_map(temps.iter().map(|(k, v)| (k, v)))
 }
 
-pub fn run(ctx: &Ctx, json: bool, watch: bool) -> CliResult<ExitCode> {
+/// Prints the status once, or every second with `watch`. `collect` reads
+/// it from the daemon or from sysfs.
+pub fn run(
+    json: bool,
+    watch: bool,
+    mut collect: impl FnMut() -> CliResult<Status>,
+) -> CliResult<ExitCode> {
     loop {
-        let status = collect_direct(ctx);
+        let status = collect()?;
         if json {
             let out = if watch {
                 serde_json::to_string(&status)

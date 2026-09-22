@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/alienfan-cli","crates/alienfan-core"]
+members = ["crates/alienfan-cli","crates/alienfan-core", "crates/alienfan-proto", "crates/alienfand"]
 
 [workspace.package]
 version = "0.1.0"

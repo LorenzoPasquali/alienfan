@@ -198,3 +198,29 @@ fn load_reports_invalid_files() {
     };
     assert_eq!(e.line, Some(1));
 }
+
+#[test]
+fn removing_every_curve_keeps_none() {
+    let mut file = ConfigFile::default();
+    for name in ["agressivo", "equilibrado", "silencioso"] {
+        file.remove_curve(name).unwrap();
+    }
+    assert!(file.config().curves.is_empty());
+    assert!(file.text().contains("[curves]"), "{}", file.text());
+    assert!(Config::parse(&file.text()).unwrap().curves.is_empty());
+}
+
+#[test]
+fn editing_curves_of_a_file_without_curves_keeps_the_shipped_ones() {
+    let mut file = ConfigFile::parse("[daemon]\ntick_ms = 500\n").unwrap();
+    assert_eq!(file.config().curves.len(), 3);
+    let curve = Config::default().curves["silencioso"].clone();
+    file.set_curve("nova", &curve).unwrap();
+    assert_eq!(
+        file.config().curves.keys().collect::<Vec<_>>(),
+        ["agressivo", "equilibrado", "nova", "silencioso"]
+    );
+    let mut file = ConfigFile::parse("version = 1\n").unwrap();
+    file.remove_curve("agressivo").unwrap();
+    assert_eq!(file.config().curves.len(), 2);
+}

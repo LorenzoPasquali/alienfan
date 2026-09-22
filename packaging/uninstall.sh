@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # alienfan uninstaller (SPEC 11.5): undoes install.sh in reverse order.
 #
-# M2 scope: what install.sh installs today. It grows with the installer.
+# Scope: what install.sh installs today. It grows with the installer.
 set -euo pipefail
 
 GROUP=alienfan
@@ -12,6 +12,14 @@ run_sudo() { printf '+ sudo %s\n' "$*"; sudo "$@"; }
 ask() { local reply; read -r -p "$1 [s/N] " reply; [[ $reply == [sS]* ]]; }
 
 [[ $EUID -ne 0 ]] || { echo "rode como usuário, sem sudo" >&2; exit 1; }
+
+say "Daemon da sessão"
+if [[ -e /usr/lib/systemd/user/alienfand.service ]]; then
+  systemctl --user disable --now alienfand.service || true
+  run_sudo rm -f /usr/lib/systemd/user/alienfand.service \
+    /usr/share/dbus-1/services/io.github.lorenzopasquali.AlienFan.service
+  systemctl --user daemon-reload
+fi
 
 say "Serviço de boot"
 if [[ -e /etc/systemd/system/alienfan-apply.service ]]; then
@@ -37,8 +45,8 @@ if [[ -e /etc/tlp.d/99-alienfan.conf ]]; then
   command -v tlp >/dev/null && run_sudo tlp start
 fi
 
-say "Binário"
-run_sudo rm -f /usr/local/bin/alienfan
+say "Binários"
+run_sudo rm -f /usr/local/bin/alienfan /usr/local/bin/alienfand
 
 say "Config e grupo"
 if [[ -d $ETC ]] && ask "Apagar $ETC (sua config e curvas)?"; then
