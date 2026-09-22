@@ -1,0 +1,27 @@
+[package]
+name = "alienfan-panel"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/LorenzoPasquali/alienfan"
+description = "Painel do alienfan: ventoinhas, curvas e padrões"
+
+# A workspace of its own: building it needs the WebKitGTK development
+# packages, which the rest of alienfan does not.
+[workspace]
+
+[build-dependencies]
+tauri-build = "2"
+
+[dependencies]
+alienfan-proto = { version = "0.1.0", path = "../../crates/alienfan-proto" }
+futures-util = "0.3.34"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tauri = "2"
+tauri-plugin-single-instance = "2"
+tokio = { version = "1.53.1", features = ["process", "time", "sync", "macros"] }
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

@@ -2,3 +2,4 @@
 node_modules/
 /panel/dist/
 /panel/src-tauri/target/
+/panel/src-tauri/gen/

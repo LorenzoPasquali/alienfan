@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alienfan</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+            <path d="M8 0.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15zm0 1.2a6.3 6.3 0 1 1 0 12.6 6.3 6.3 0 0 1 0-12.6z" />
+            <circle cx="8" cy="8" r="1.9" />
+            <path d="M8.9 6.9C8.4 4.9 9.2 2.6 11.6 1.9c0.9 1.9 0.4 4.2-1.6 5.5z" transform="rotate(0 8 8)" />
+            <path d="M8.9 6.9C8.4 4.9 9.2 2.6 11.6 1.9c0.9 1.9 0.4 4.2-1.6 5.5z" transform="rotate(72 8 8)" />
+            <path d="M8.9 6.9C8.4 4.9 9.2 2.6 11.6 1.9c0.9 1.9 0.4 4.2-1.6 5.5z" transform="rotate(144 8 8)" />
+            <path d="M8.9 6.9C8.4 4.9 9.2 2.6 11.6 1.9c0.9 1.9 0.4 4.2-1.6 5.5z" transform="rotate(216 8 8)" />
+            <path d="M8.9 6.9C8.4 4.9 9.2 2.6 11.6 1.9c0.9 1.9 0.4 4.2-1.6 5.5z" transform="rotate(288 8 8)" />
+          </svg>
+          Alienfan
+        </div>
+        <nav class="tabs" role="tablist" aria-label="Seções">
+          <button class="tab" role="tab" id="tab-fans" aria-controls="view-fans" aria-selected="true">Ventoinhas</button>
+          <button class="tab" role="tab" id="tab-curves" aria-controls="view-curves" aria-selected="false" tabindex="-1">Curvas</button>
+          <button class="tab" role="tab" id="tab-defaults" aria-controls="view-defaults" aria-selected="false" tabindex="-1">Padrões</button>
+        </nav>
+        <span class="status-item daemon-dot" id="daemon-status"><span class="dot"></span><span></span></span>
+      </header>
+
+      <div class="banner" id="banner" role="alert" hidden>
+        <span id="banner-text"></span>
+        <button class="btn" id="banner-action" hidden>Iniciar serviço</button>
+      </div>
+
+      <main>
+        <section class="view" id="view-fans" role="tabpanel" aria-labelledby="tab-fans"></section>
+        <section class="view" id="view-curves" role="tabpanel" aria-labelledby="tab-curves" hidden></section>
+        <section class="view" id="view-defaults" role="tabpanel" aria-labelledby="tab-defaults" hidden></section>
+      </main>
+
+      <footer class="statusbar">
+        <span class="status-item" id="status-power"></span>
+        <span class="status-item" id="status-health"><span class="dot"></span><span></span></span>
+        <span class="override" id="status-override" hidden>
+          Override ativo
+          <button class="btn" id="restore-default">Voltar ao padrão</button>
+          <button class="btn btn-primary" id="save-default">Salvar como padrão</button>
+        </span>
+      </footer>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

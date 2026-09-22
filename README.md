@@ -13,7 +13,7 @@ routine. The full design is in [SPEC.md](SPEC.md).
 | M2 | `alienfan` CLI (direct mode), udev rule, boot service, TLP drop-in, installer | done |
 | M3 | `alienfand` daemon over D-Bus (curve, power source, resume); CLI through it | done |
 | M4 | GNOME Quick Settings extension | done |
-| M5 | Tauri panel | next |
+| M5 | Tauri panel | frontend done and tested in a browser; Tauri side needs the apt packages to build |
 | M6 | awcc removal, final uninstaller, docs | |
 
 ## Build and test
@@ -118,6 +118,35 @@ with and without the daemon. Look for errors with
 journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i alienfan
 ```
 
+## Panel
+
+`panel/`: Tauri 2 with a TypeScript UI and no framework (Vite). It has
+three tabs: Ventoinhas (animated fans, profile strip, boost), Curvas (SVG
+editor with draggable points) and Padrões (AC and battery defaults). It only
+talks to the daemon.
+
+Building it needs the WebKitGTK development packages:
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libdbus-1-dev libxdo-dev libssl-dev \
+  libayatana-appindicator3-dev librsvg2-dev
+cd panel && npm ci
+npx tauri dev                  # window with hot reload, needs alienfand running
+npx tauri build --no-bundle    # panel/src-tauri/target/release/alienfan-panel
+```
+
+The UI also runs in a plain browser against a simulated daemon, which is how
+it was checked before the packages were installed:
+
+```bash
+cd panel && npm run dev        # http://localhost:5173
+# ?theme=dark|light forces a theme; ?mock=offline|emergency|no-permission
+# starts the simulation in that state.
+```
+
+`panel/src-tauri` is a Cargo workspace of its own, so the main workspace
+builds and tests without WebKitGTK.
+
 ## Decisions not fixed by the spec
 
 - `SysfsRoot` defaults to `/sys` (the spec says `/`), so the fixture mirrors
@@ -154,5 +183,11 @@ journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i alienfan
   reset.
 - A config without a `[curves]` table uses the shipped curves; the first
   curve edit writes them into the file.
+- The panel's profile hint recommends only Silencioso for less noise. The
+  spec suggested "Silencioso ou Frio", but on this machine `cool` idles at
+  ~4300 rpm (Phase 0), louder than `balanced`. Profiles are listed from
+  quietest to loudest as measured.
+- `override_until` is edited in the panel's Padrões tab (v1), through
+  `SetDaemonOption`.
 - Serde type errors in the config (e.g. a string where a number goes) are
   reported in English; validation errors are in pt-BR.

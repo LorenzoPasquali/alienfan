@@ -14,6 +14,13 @@ ask() { local reply; read -r -p "$1 [s/N] " reply; [[ $reply == [sS]* ]]; }
 
 [[ $EUID -ne 0 ]] || { echo "rode como usuário, sem sudo" >&2; exit 1; }
 
+say "Painel"
+APP_ID=io.github.lorenzopasquali.AlienFan
+run_sudo rm -f /usr/local/bin/alienfan-panel \
+  "/usr/local/share/applications/$APP_ID.desktop" \
+  "/usr/local/share/icons/hicolor/scalable/apps/$APP_ID.svg" \
+  "/usr/local/share/icons/hicolor/256x256/apps/$APP_ID.png"
+
 say "Extensão GNOME"
 gnome-extensions disable "$UUID" 2>/dev/null || true
 rm -rf "${HOME:?}/.local/share/gnome-shell/extensions/$UUID"
