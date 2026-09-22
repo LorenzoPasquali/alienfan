@@ -53,17 +53,21 @@ with boost 51 (20%) settles at 3276 / 3260 rpm.
    speed, so curves need small boost values in the 0–30% range.
 5. **Real top speed is ~6600 rpm, above `fanN_max` = 6000.** The UI clamps
    the RPM ring at 100%.
-6. **`custom` idles faster than `balanced`** (~2900 vs ~1750 rpm, upper
+6. **"Automático (firmware)" never writes the boost after a profile
+   change.** A profile change already sets the firmware's own boost (0, or
+   100 in `performance`), so writing over it would silence G-Mode. alienfan
+   only clears a boost it wrote itself, and only while the profile stays the
+   same.
+7. **`custom` idles faster than `balanced`** (~2900 vs ~1750 rpm, upper
    bounds). With `boost_requires_custom = false` the daemon never needs it
    (SPEC 18, question 2).
 
 ## Open
 
-- **`performance` sets boost 100 on its own.** Today every write plan also
-  writes the boost, so `alienfan profile set performance` keeps the previous
-  boost (usually 0) instead of the firmware's 100. Run 2 (T9) shows whether
-  writing 0 there lowers the fans. Then decide what "Automático (firmware)"
-  means in `performance`.
+- **T9: does writing boost 0 in `performance` change the fans?** Because
+  `performance` sets boost 100 by itself, "Automático (firmware)" now means
+  the firmware owns the boost (decision 7). T9 only tells how audible the
+  earlier behaviour was.
 - **T8**: does writing the same profile again reset the boost? This would give
   a way back to the firmware value without a hardcoded table.
 - **Run 2 on AC**: base RPM per profile on AC, with ascending steps and a

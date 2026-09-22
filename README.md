@@ -172,6 +172,10 @@ builds and tests without WebKitGTK.
   `SaveCurveWithOptions` (the panel edits hysteresis and ramps),
   `SetDaemonOption`, and the `OverrideUntil` and `EmergencyTempC` properties.
 - `SetControl("curve", "")` runs the curve named by the current default.
+- "Automático (firmware)" means the firmware owns the boost: nothing is
+  written over it after a profile change (`performance` sets boost 100 by
+  itself, Phase 0 T1), and a boost alienfan wrote is cleared only while the
+  profile stays the same.
 - `SaveAsDefault` ends the override only when the target includes the
   current power source; saving the other source's default keeps it.
 - `SetDefault` on the current source applies at once when no override is
