@@ -14,7 +14,7 @@ routine. The full design is in [SPEC.md](SPEC.md).
 | M3 | `alienfand` daemon over D-Bus (curve, power source, resume); CLI through it | done |
 | M4 | GNOME Quick Settings extension | done |
 | M5 | Tauri panel | frontend done and tested in a browser; Tauri side needs the apt packages to build |
-| M6 | awcc removal, final uninstaller, docs | |
+| M6 | awcc removal, uninstaller, troubleshooting | done, except the awcc removal itself (it asks first) |
 
 ## Build and test
 
@@ -49,23 +49,26 @@ ALIENFAN_SYSFS_ROOT=/tmp/fake-sys ALIENFAN_CONFIG=/tmp/fake-config.toml \
 ./packaging/install.sh      # run as your user; it asks for sudo and prints each sudo command
 ```
 
-It builds in release mode, creates the `alienfan` group, installs
-`/usr/local/bin/alienfan`, the udev rule, `/etc/alienfan/config.toml` (only if
-missing), the TLP drop-in and `alienfan-apply.service`. Log out and back in
-so the group applies, then everything works without sudo:
+It builds in release mode and installs, in this order: the `alienfan`
+group, `alienfan` and `alienfand` in `/usr/local/bin`, the udev rule,
+`/etc/alienfan/config.toml` (only if missing), the TLP drop-in,
+`alienfan-apply.service`, the `alienfand` user unit with its D-Bus
+activation, the GNOME extension and the panel. Steps that need packages you
+do not have are skipped with the command to run.
+
+Log out and back in (the group only applies to a new session, and the Shell
+picks up the extension), then:
 
 ```bash
+gnome-extensions enable alienfan@lorenzopasquali.github.io
 alienfan doctor
 alienfan profile set quiet
 alienfan boost all 60%
 alienfan default save --ac
 ```
 
-`./packaging/uninstall.sh` undoes it.
-
-Until M3 nothing switches the profile when you plug or unplug the charger:
-the TLP drop-in stops TLP from doing it, and the daemon does not exist yet.
-Run `alienfan apply` by hand after a switch.
+`./packaging/uninstall.sh` undoes it. `./packaging/remove-awcc.sh` removes
+the old tr1xem awcc, asking first (SPEC 15).
 
 ## CLI
 
@@ -146,6 +149,34 @@ cd panel && npm run dev        # http://localhost:5173
 
 `panel/src-tauri` is a Cargo workspace of its own, so the main workspace
 builds and tests without WebKitGTK.
+
+## Troubleshooting
+
+`alienfan doctor` names the problem and the command that fixes it. The
+usual ones:
+
+- **`erro: sem permissão para escrever em /sys/...`** — the session started
+  before the `alienfan` group existed. Log out and back in, or use
+  `newgrp alienfan` in one terminal to test right away.
+- **Health `no-permission` in the daemon or the panel** — same cause: the
+  user systemd manager still runs without the group. A full logout fixes it;
+  `systemctl --user restart alienfand` alone does not.
+- **The profile changes on its own** — something else writes it. Check with
+  `tlp-stat -p` and `journalctl -u tlp`; `doctor` warns when a TLP file after
+  `99-alienfan.conf` sets `PLATFORM_PROFILE_*`.
+- **`control curve` exits with 5** — the daemon is not running:
+  `systemctl --user status alienfand`.
+- **The extension shows "Serviço parado"** — the daemon is not on the
+  session bus. Its menu has "Iniciar serviço", or run
+  `systemctl --user start alienfand`.
+- **The panel does not open from the menu** — run `alienfan-panel` in a
+  terminal to see the error, and check
+  `/usr/local/share/applications/io.github.lorenzopasquali.AlienFan.desktop`.
+- **The fans stay loud after closing everything** — with the daemon stopped
+  the boost goes back to 0, but a boost written by the CLI in direct mode
+  stays. `alienfan control firmware` clears it.
+- **Going back to how it was** — `./packaging/uninstall.sh` removes
+  everything and gives the profile back to TLP.
 
 ## Decisions not fixed by the spec
 
