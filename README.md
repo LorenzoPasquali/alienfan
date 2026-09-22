@@ -13,7 +13,7 @@ routine. The full design is in [SPEC.md](SPEC.md).
 | M2 | `alienfan` CLI (direct mode), udev rule, boot service, TLP drop-in, installer | done |
 | M3 | `alienfand` daemon over D-Bus (curve, power source, resume); CLI through it | done |
 | M4 | GNOME Quick Settings extension | done |
-| M5 | Tauri panel | frontend done and tested in a browser; Tauri side needs the apt packages to build |
+| M5 | Tauri panel | done; the window itself is for you to judge |
 | M6 | awcc removal, uninstaller, troubleshooting | done, except the awcc removal itself (it asks first) |
 
 ## Build and test
@@ -138,8 +138,11 @@ npx tauri dev                  # window with hot reload, needs alienfand running
 npx tauri build --no-bundle    # panel/src-tauri/target/release/alienfan-panel
 ```
 
+The release binary is built and runs (`cargo clippy -- -D warnings` clean);
+what the window looks like on a real screen is for a human to judge.
+
 The UI also runs in a plain browser against a simulated daemon, which is how
-it was checked before the packages were installed:
+it was checked:
 
 ```bash
 cd panel && npm run dev        # http://localhost:5173

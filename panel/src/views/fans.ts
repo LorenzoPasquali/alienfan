@@ -11,6 +11,7 @@ const SLIDER_DELAY_MS = 150;
 const STEP_PCT = 10;
 
 export class FansView {
+  private readonly profiles: HTMLElement;
   private readonly segmented: HTMLElement;
   private readonly indicator: HTMLElement;
   private readonly hint: HTMLElement;
@@ -28,6 +29,7 @@ export class FansView {
         </div>`),
       html('<div class="cards"></div>'),
     );
+    this.profiles = $(root, '.profiles');
     this.segmented = $(root, '.segmented');
     this.indicator = $(root, '.seg-indicator');
     this.hint = $(root, '.profile-hint');
@@ -71,7 +73,7 @@ export class FansView {
       b.tabIndex = checked ? 0 : -1;
       b.disabled = !s || locked;
     }
-    $(this.segmented.parentElement!, '.segmented').parentElement!.hidden = !s;
+    this.profiles.hidden = !s;
     const info = s ? profileInfo(s.profile) : null;
     const tip = s?.profile === 'quiet'
       ? 'O boost só acelera: para menos ruído, fique no Silencioso sem boost.'
